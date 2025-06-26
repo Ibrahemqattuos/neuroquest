@@ -3,7 +3,85 @@
 <head>
   <meta charset="UTF-8">
   <title>🧠 NeuroQuest - رحلة الدماغ</title>
-  <link rel="stylesheet" href="style.css">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f5faff;
+      margin: 0;
+      padding: 0;
+    }
+
+    #startScreen, #certificateScreen {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #e6f2ff;
+      text-align: center;
+    }
+
+    #startScreen h1, #certificateScreen h1 {
+      font-size: 3em;
+      color: #007acc;
+    }
+
+    #startScreen p, #certificateScreen p {
+      font-size: 1.2em;
+      margin: 20px;
+    }
+
+    button {
+      padding: 15px 30px;
+      font-size: 1em;
+      background-color: #007acc;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 8px;
+    }
+
+    #gameContainer {
+      text-align: center;
+      padding: 20px;
+      display: none;
+    }
+
+    #progressBar {
+      background-color: #d0ebff;
+      color: #003366;
+      padding: 10px;
+      font-weight: bold;
+      display: inline-block;
+      margin-bottom: 10px;
+      border-radius: 5px;
+    }
+
+    #gameCanvas {
+      border: 2px solid #007acc;
+      background-color: white;
+      margin: 20px auto;
+      display: block;
+    }
+
+    #infoBox {
+      margin-top: 15px;
+      padding: 10px;
+      background-color: #e6f2ff;
+      color: #003366;
+      display: inline-block;
+      max-width: 600px;
+      border-radius: 8px;
+    }
+
+    #nextLevelBtn {
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
 
@@ -16,7 +94,7 @@
   </div>
 
   <!-- القسم الرئيسي للعبة -->
-  <div id="gameContainer" style="display: none;">
+  <div id="gameContainer">
     <h1 id="levelTitle">🧠 مستوى 1: بناء الخلية العصبية</h1>
     <div id="progressBar">المستوى: <span id="levelNum">1</span></div>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
@@ -39,6 +117,15 @@
 
     let currentLevel = 1;
     let score = 0;
+
+    // الصور المدمجة بصيغة Base64
+    const neuronImages = {
+      "جسم الخلية": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAyCAIAAAA...",
+      "المحور (Axon)": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAyCAIAAAA...",
+      "الشجرة العصبية": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAyCAIAAAA...",
+      "الغشاء المايليني": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAyCAIAAAA...",
+      "التشابك العصبي": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAyCAIAAAA..."
+    };
 
     // بيانات المستويات
     const levels = [
@@ -64,17 +151,10 @@
           { name: "المحور", x: 400, y: 200, placed: false, correctX: 400, correctY: 200 },
           { name: "التشابك", x: 500, y: 200, placed: false, correctX: 500, correctY: 200 }
         ],
-        info: {
-          "التحفيز": "يبدأ التحفيز عند لمس شيء ساخن، مثل الموقد.",
-          "استقبال الإشارة": "الشجرة العصبية تستقبل الإشارة الأولية.",
-          "النواة": "النواة تُعدّ الإشارة وتُرسلها عبر المحور.",
-          "المحور": "المحور ينقل الإشارة بسرعة إلى خلية أخرى.",
-          "التشابك": "التشابك ينقل الإشارة من خلية إلى أخرى."
-        }
+        explanation: "رتب خطوات انتقال الإشارة الكهربائية"
       },
       {
         title: "مستوى 3: توصيل الخلايا",
-        lines: [],
         circles: [
           { x: 100, y: 100, radius: 30, label: "خلية 1", connected: false },
           { x: 300, y: 100, radius: 30, label: "خلية 2", connected: false },
@@ -112,14 +192,15 @@
     ];
 
     let draggedItem = null;
-    let draggingLine = null;
+    let imagesLoaded = 0;
+    const images = {};
 
     function startGame() {
       document.getElementById("startScreen").style.display = "none";
       document.getElementById("gameContainer").style.display = "block";
       document.getElementById("levelTitle").innerText = levels[currentLevel - 1].title;
       document.getElementById("levelNum").innerText = currentLevel;
-      draw();
+      loadImages();
     }
 
     function nextLevel() {
@@ -128,9 +209,6 @@
         document.getElementById("levelTitle").innerText = levels[currentLevel - 1].title;
         document.getElementById("levelNum").innerText = currentLevel;
         resetLevel();
-        document.getElementById("nextLevelBtn").style.display = "none";
-        document.getElementById("infoBox").style.display = "block";
-        document.getElementById("infoBox").innerText = "ابدأ المستوى الجديد!";
         draw();
       } else {
         showCertificate();
@@ -160,7 +238,9 @@
 
       if (currentLevel === 1) {
         level.parts.forEach(part => {
-          drawImageFromURL(part.name, part.x, part.y, 40, part.placed ? "#aaa" : "#007acc");
+          if (images[part.name]) {
+            ctx.drawImage(images[part.name], part.x, part.y, 40, 40);
+          }
           ctx.setLineDash([5]);
           ctx.strokeStyle = "#999";
           ctx.strokeRect(part.correctX, part.correctY, 40, 40);
@@ -173,12 +253,13 @@
             <small>استمر في اللعب...</small>
           `;
           document.getElementById("nextLevelBtn").style.display = "block";
-          score += 10;
         }
 
       } else if (currentLevel === 2) {
         level.parts.forEach((part, i) => {
-          drawImageFromURL(part.name, part.x, part.y, 40, "#007acc");
+          if (images[part.name]) {
+            ctx.drawImage(images[part.name], part.x, part.y, 40, 40);
+          }
         });
 
         if (isOrderedCorrectly()) {
@@ -199,7 +280,7 @@
           ctx.fillText(circle.label, circle.x, circle.y + 5);
         });
 
-        level.lines.forEach(line => {
+        level.lines?.forEach(line => {
           ctx.beginPath();
           ctx.moveTo(line.from.x, line.from.y);
           ctx.lineTo(line.to.x, line.to.y);
@@ -210,18 +291,21 @@
         if (level.circles.every(c => c.connected)) {
           document.getElementById("infoBox").innerHTML = `✅ تم! لقد بنيت شبكة عصبية كاملة`;
           document.getElementById("nextLevelBtn").style.display = "block";
-          score += 10;
         }
 
       } else if (currentLevel === 4) {
         level.parts.forEach(part => {
-          drawImageFromURL(part.name, part.x, part.y, 40, part.broken ? "red" : "#007acc");
+          if (images[part.name]) {
+            ctx.drawImage(images[part.name], part.x, part.y, 40, 40);
+          }
         });
         document.getElementById("infoBox").innerText = "انقر على الجزء المعطوب";
 
       } else if (currentLevel === 5) {
         level.steps.forEach(step => {
-          drawImageFromURL(step.name, step.x, step.y, 40, "#007acc");
+          if (images[step.name]) {
+            ctx.drawImage(images[step.name], step.x, step.y, 40, 40);
+          }
         });
 
         level.targets.forEach(target => {
@@ -241,52 +325,42 @@
       const level = levels[currentLevel - 1];
       if (level.parts) level.parts.forEach(p => p.placed = false);
       if (level.circles) level.circles.forEach(c => c.connected = false);
-      if (level.steps) level.steps.forEach(s => s.placed = false);
       document.getElementById("nextLevelBtn").style.display = "none";
-      document.getElementById("infoBox").style.display = "block";
       document.getElementById("infoBox").innerText = "ابدأ المستوى!";
       draw();
     }
 
-    function drawImageFromURL(name, x, y, size, color = "#007acc") {
-      const img = new Image();
-      const imageUrl = {
-        "جسم الخلية": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0d/Neuron.svg/480px-Neuron.svg.png ",
-        "المحور (Axon)": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Gray669.png/800px-Gray669.png ",
-        "الشجرة العصبية": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Dendrite_Development.png/800px-Dendrite_Development.png ",
-        "الغشاء المايليني": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Myelination_diagram.svg/1200px-Myelination_diagram.svg.png ",
-        "التشابك العصبي": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Synapse_Diagram.png/800px-Synapse_Diagram.png "
-      }[name] || "";
+    function loadImages() {
+      levels.forEach(level => {
+        level.parts?.forEach(part => {
+          const img = new Image();
+          img.src = neuronImages[part.name] || "";
+          img.onload = () => {
+            images[part.name] = img;
+            imagesLoaded++;
+            if (imagesLoaded === getTotalParts()) draw();
+          };
+        });
+      });
+    }
 
-      if (imageUrl) {
-        img.src = imageUrl;
-        img.onload = () => {
-          ctx.drawImage(img, x, y, size, size);
-        };
-      } else {
-        ctx.fillStyle = color;
-        ctx.fillRect(x, y, size, size);
-        ctx.fillStyle = "#fff";
-        ctx.font = "12px Arial";
-        ctx.fillText(name.charAt(0), x + 15, y + 25);
-      }
+    function getTotalParts() {
+      let count = 0;
+      levels.forEach(level => {
+        if (level.parts) count += level.parts.length;
+      });
+      return count;
     }
 
     function connectCircles(clickedCircle) {
       if (!clickedCircle.connected) {
         clickedCircle.connected = true;
+        levels[2].lines = levels[2].lines || [];
         levels[2].lines.push({
           from: { x: clickedCircle.x, y: clickedCircle.y },
           to: { x: clickedCircle.x + 100, y: clickedCircle.y }
         });
-      }
-    }
-
-    function playSound(id) {
-      const sound = document.getElementById(id);
-      if (sound) {
-        sound.currentTime = 0;
-        sound.play();
+        draw();
       }
     }
 
@@ -413,11 +487,178 @@
       }
     }
 
+    function startGame() {
+      document.getElementById("startScreen").style.display = "none";
+      document.getElementById("gameContainer").style.display = "block";
+      document.getElementById("levelTitle").innerText = levels[0].title;
+      loadImages();
+    }
+
+    function nextLevel() {
+      if (currentLevel < levels.length) {
+        currentLevel++;
+        document.getElementById("levelTitle").innerText = levels[currentLevel - 1].title;
+        document.getElementById("levelNum").innerText = currentLevel;
+        resetLevel();
+        draw();
+      } else {
+        showCertificate();
+      }
+    }
+
+    function showCertificate() {
+      document.getElementById("gameContainer").style.display = "none";
+      document.getElementById("certificateScreen").style.display = "block";
+      document.getElementById("totalScore").innerText = score;
+    }
+
+    function restartGame() {
+      currentLevel = 1;
+      score = 0;
+      document.getElementById("certificateScreen").style.display = "none";
+      document.getElementById("gameContainer").style.display = "block";
+      document.getElementById("levelTitle").innerText = levels[0].title;
+      document.getElementById("levelNum").innerText = 1;
+      resetLevel();
+      draw();
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const level = levels[currentLevel - 1];
+
+      if (currentLevel === 1) {
+        level.parts.forEach(part => {
+          if (images[part.name]) {
+            ctx.drawImage(images[part.name], part.x, part.y, 40, 40);
+          }
+          ctx.setLineDash([5]);
+          ctx.strokeStyle = "#999";
+          ctx.strokeRect(part.correctX, part.correctY, 40, 40);
+          ctx.setLineDash([]);
+        });
+
+        if (level.parts.every(p => p.placed)) {
+          document.getElementById("infoBox").innerHTML = `
+            📘 تم! يمكنك مشاهدة كيف تعمل الإشارة العصبية.<br>
+            <small>استمر في اللعب...</small>
+          `;
+          document.getElementById("nextLevelBtn").style.display = "block";
+        }
+
+      } else if (currentLevel === 2) {
+        level.parts.forEach((part, i) => {
+          if (images[part.name]) {
+            ctx.drawImage(images[part.name], part.x, part.y, 40, 40);
+          }
+        });
+
+        if (isOrderedCorrectly()) {
+          document.getElementById("infoBox").innerHTML = `✅ رائع! لقد رتبت الخطوات بشكل صحيح.`;
+          document.getElementById("nextLevelBtn").style.display = "block";
+          score += 10;
+        }
+
+      } else if (currentLevel === 3) {
+        level.circles.forEach(circle => {
+          ctx.beginPath();
+          ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
+          ctx.fillStyle = circle.connected ? "#007acc" : "#ddd";
+          ctx.fill();
+          ctx.fillStyle = "#000";
+          ctx.textAlign = "center";
+          ctx.font = "14px Arial";
+          ctx.fillText(circle.label, circle.x, circle.y + 5);
+        });
+
+        level.lines?.forEach(line => {
+          ctx.beginPath();
+          ctx.moveTo(line.from.x, line.from.y);
+          ctx.lineTo(line.to.x, line.to.y);
+          ctx.strokeStyle = "#007acc";
+          ctx.stroke();
+        });
+
+        if (level.circles.every(c => c.connected)) {
+          document.getElementById("infoBox").innerHTML = `✅ تم! لقد بنيت شبكة عصبية كاملة`;
+          document.getElementById("nextLevelBtn").style.display = "block";
+          score += 10;
+        }
+
+      } else if (currentLevel === 4) {
+        level.parts.forEach(part => {
+          if (images[part.name]) {
+            ctx.drawImage(images[part.name], part.x, part.y, 40, 40);
+          }
+        });
+        document.getElementById("infoBox").innerText = "انقر على الجزء المعطوب";
+
+      } else if (currentLevel === 5) {
+        level.steps.forEach(step => {
+          if (images[step.name]) {
+            ctx.drawImage(images[step.name], step.x, step.y, 40, 40);
+          }
+        });
+
+        level.targets.forEach(target => {
+          ctx.strokeStyle = "#999";
+          ctx.strokeRect(target.x, target.y, 40, 40);
+        });
+
+        document.getElementById("infoBox").innerText = "اسحب الأجزاء وضعها في أماكنها";
+      }
+    }
+
     function isOrderedCorrectly() {
       return levels[1].parts.every((p, i) => p.order === i);
     }
 
-    draw();
+    function resetLevel() {
+      const level = levels[currentLevel - 1];
+      if (level.parts) level.parts.forEach(p => p.placed = false);
+      if (level.circles) level.circles.forEach(c => c.connected = false);
+      document.getElementById("nextLevelBtn").style.display = "none";
+      document.getElementById("infoBox").innerText = "ابدأ المستوى!";
+      draw();
+    }
+
+    function loadImages() {
+      levels.forEach(level => {
+        level.parts?.forEach(part => {
+          const img = new Image();
+          img.src = neuronImages[part.name] || "";
+          img.onload = () => {
+            images[part.name] = img;
+            imagesLoaded++;
+            if (imagesLoaded === getTotalParts()) draw();
+          };
+        });
+      });
+    }
+
+    function getTotalParts() {
+      let count = 0;
+      levels.forEach(level => {
+        if (level.parts) count += level.parts.length;
+      });
+      return count;
+    }
+
+    // بدء تحميل الصور
+    let imagesLoaded = 0;
+    const images = {};
+    levels.forEach(level => {
+      level.parts?.forEach(part => {
+        const img = new Image();
+        img.src = neuronImages[part.name] || "";
+        img.onload = () => {
+          images[part.name] = img;
+          imagesLoaded++;
+          if (imagesLoaded === getTotalParts()) draw();
+        };
+      });
+    });
   </script>
 </body>
 </html>
