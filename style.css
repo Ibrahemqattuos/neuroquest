@@ -1,0 +1,76 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: #f5faff;
+  margin: 0;
+  padding: 0;
+}
+
+#startScreen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #e6f2ff;
+  text-align: center;
+}
+
+#startScreen h1 {
+  font-size: 3em;
+  color: #007acc;
+}
+
+#startScreen p {
+  font-size: 1.2em;
+  margin: 20px;
+}
+
+#startScreen button {
+  padding: 15px 30px;
+  font-size: 1em;
+  background-color: #007acc;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+#gameContainer {
+  text-align: center;
+  padding: 20px;
+}
+
+#progressBar {
+  background-color: #d0ebff;
+  color: #003366;
+  padding: 10px;
+  font-weight: bold;
+  display: inline-block;
+  margin-bottom: 10px;
+  border-radius: 5px;
+}
+
+#gameCanvas {
+  border: 2px solid #007acc;
+  background-color: white;
+  margin: 20px auto;
+  display: block;
+}
+
+#infoBox {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #e6f2ff;
+  color: #003366;
+  display: inline-block;
+  max-width: 600px;
+  border-radius: 8px;
+}
+
+#nextLevelBtn {
+  margin-top: 10px;
+}
