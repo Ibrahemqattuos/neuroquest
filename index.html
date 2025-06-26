@@ -2,70 +2,18 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>🧠 NeuroQuest - رحلة الدماغ</title>
+  <title>🧠 NeuroQuest</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
     body {
-      font-family: 'Arial', sans-serif;
+      font-family: Arial, sans-serif;
       background-color: #f5faff;
-      margin: 0;
-      padding: 0;
-    }
-
-    #startScreen, #certificateScreen {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background-color: #e6f2ff;
       text-align: center;
     }
 
-    #startScreen h1, #certificateScreen h1 {
-      font-size: 3em;
-      color: #007acc;
-    }
-
-    #startScreen p, #certificateScreen p {
-      font-size: 1.2em;
-      margin: 20px;
-    }
-
-    button {
-      padding: 15px 30px;
-      font-size: 1em;
-      background-color: #007acc;
-      color: white;
-      border: none;
-      cursor: pointer;
-      border-radius: 8px;
-    }
-
-    #gameContainer {
-      text-align: center;
-      padding: 20px;
-      display: none;
-    }
-
-    #progressBar {
-      background-color: #d0ebff;
-      color: #003366;
-      padding: 10px;
-      font-weight: bold;
-      display: inline-block;
-      margin-bottom: 10px;
-      border-radius: 5px;
-    }
-
-    #gameCanvas {
+    canvas {
       border: 2px solid #007acc;
       background-color: white;
-      margin: 20px auto;
-      display: block;
+      margin-top: 20px;
     }
 
     #infoBox {
@@ -74,287 +22,67 @@
       background-color: #e6f2ff;
       color: #003366;
       display: inline-block;
-      max-width: 600px;
-      border-radius: 8px;
-    }
-
-    #nextLevelBtn {
-      margin-top: 10px;
     }
   </style>
 </head>
 <body>
 
-  <!-- شاشة البداية -->
-  <div id="startScreen">
-    <h1>🧠 NeuroQuest</h1>
-    <p>مرحبًا بك في رحلة داخل الدماغ!</p>
-    <p>هدفك هو إعادة بناء الخلايا العصبية لإنقاذ المريض أحمد.</p>
-    <button onclick="startGame()">ابدأ الرحلة</button>
-  </div>
-
-  <!-- القسم الرئيسي للعبة -->
-  <div id="gameContainer">
-    <h1 id="levelTitle">🧠 مستوى 1: بناء الخلية العصبية</h1>
-    <div id="progressBar">المستوى: <span id="levelNum">1</span></div>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-    <div id="infoBox">اسحب الأجزاء وضعها في أماكنها الصحيحة</div>
-    <div id="nextLevelBtn" style="display: none;"><button onclick="nextLevel()">المستوى التالي</button></div>
-  </div>
-
-  <!-- شهادة الإتمام -->
-  <div id="certificateScreen" style="display: none;">
-    <h1>📜 شهادة إنجاز</h1>
-    <p>لقد أتممت جميع مستويات لعبة NeuroQuest!</p>
-    <p><strong>🧠 أنت الآن قادر على فهم تركيب الخلية العصبية!</strong></p>
-    <p><strong>إجمالي النقاط: <span id="totalScore">0</span></strong></p>
-    <button onclick="restartGame()">العب مرة أخرى</button>
-  </div>
+  <h1>🧠 مستوى 1: بناء خلية عصبية</h1>
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+  <div id="infoBox">اسحب الأجزاء وضعها في أماكنها الصحيحة</div>
 
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
 
-    let currentLevel = 1;
-    let score = 0;
+    let draggedPart = null;
 
-    // بيانات المستويات
-    const levels = [
-      {
-        title: "مستوى 1: بناء الخلية العصبية",
-        parts: [
-          { name: "جسم الخلية", x: 400, y: 300, placed: false, correctX: 380, correctY: 280 },
-          { name: "المحور (Axon)", x: 500, y: 300, placed: false, correctX: 480, correctY: 280 },
-          { name: "الشجرة العصبية", x: 300, y: 300, placed: false, correctX: 280, correctY: 280 }
-        ],
-        info: {
-          "جسم الخلية": "هو مركز الخلية ويحتوي على النواة.",
-          "المحور (Axon)": "ينقل الإشارات من الخلية إلى الخلايا الأخرى.",
-          "الشجرة العصبية": "تستقبل الإشارات من الخلايا العصبية المجاورة."
-        }
-      },
-      {
-        title: "مستوى 2: ترتيب خطوات الإشارة",
-        parts: [
-          { name: "التحفيز", x: 100, y: 200, placed: false, correctX: 100, correctY: 200 },
-          { name: "استقبال الإشارة", x: 200, y: 200, placed: false, correctX: 200, correctY: 200 },
-          { name: "النواة", x: 300, y: 200, placed: false, correctX: 300, correctY: 200 },
-          { name: "المحور", x: 400, y: 200, placed: false, correctX: 400, correctY: 200 },
-          { name: "التشابك", x: 500, y: 200, placed: false, correctX: 500, correctY: 200 }
-        ],
-        explanation: "رتب خطوات انتقال الإشارة الكهربائية"
-      },
-      {
-        title: "مستوى 3: توصيل الخلايا",
-        lines: [],
-        circles: [
-          { x: 100, y: 100, radius: 30, label: "خلية 1", connected: false },
-          { x: 300, y: 100, radius: 30, label: "خلية 2", connected: false },
-          { x: 500, y: 100, radius: 30, label: "خلية 3", connected: false }
-        ],
-        explanation: "وصل بين الخلايا لتكون شبكة عصبية كاملة"
-      },
-      {
-        title: "مستوى 4: اكتشاف الجزء المعطل",
-        parts: [
-          { name: "جسم الخلية", x: 400, y: 300, broken: true },
-          { name: "المحور", x: 500, y: 300, broken: false },
-          { name: "الشجرة العصبية", x: 300, y: 300, broken: false }
-        ],
-        explanation: "انقر على الجزء الذي يبدو معطوبًا"
-      },
-      {
-        title: "مستوى 5: بناء رد الفعل",
-        steps: [
-          { name: "التحفيز", x: 50, y: 100, placed: false },
-          { name: "Dendrite", x: 150, y: 100, placed: false },
-          { name: "النواة", x: 250, y: 100, placed: false },
-          { name: "Axon", x: 350, y: 100, placed: false },
-          { name: "Synapse", x: 450, y: 100, placed: false }
-        ],
-        targets: [
-          { name: "التحفيز", x: 50, y: 200 },
-          { name: "Dendrite", x: 150, y: 200 },
-          { name: "النواة", x: 250, y: 200 },
-          { name: "Axon", x: 350, y: 200 },
-          { name: "Synapse", x: 450, y: 200 }
-        ],
-        explanation: "اربط كل خطوة بموضعها الصحيح لإكمال الدائرة العصبية"
-      }
+    // بيانات الأجزاء
+    const neuronParts = [
+      { name: "جسم الخلية", x: 400, y: 300, placed: false },
+      { name: "Axon", x: 500, y: 300, placed: false },
+      { name: "Dendrites", x: 300, y: 300, placed: false }
     ];
 
-    let draggedItem = null;
-    let imagesLoaded = 0;
     const images = {};
+    let imagesLoaded = 0;
 
-    function startGame() {
-      document.getElementById("startScreen").style.display = "none";
-      document.getElementById("gameContainer").style.display = "block";
-      document.getElementById("levelTitle").innerText = levels[currentLevel - 1].title;
-      document.getElementById("levelNum").innerText = currentLevel;
-      loadImages();
-    }
-
-    function nextLevel() {
-      if (currentLevel < levels.length) {
-        currentLevel++;
-        document.getElementById("levelTitle").innerText = levels[currentLevel - 1].title;
-        document.getElementById("levelNum").innerText = currentLevel;
-        resetLevel();
-        draw();
-      } else {
-        showCertificate();
-      }
-    }
-
-    function showCertificate() {
-      document.getElementById("gameContainer").style.display = "none";
-      document.getElementById("certificateScreen").style.display = "block";
-      document.getElementById("totalScore").innerText = score;
-    }
-
-    function restartGame() {
-      currentLevel = 1;
-      score = 0;
-      document.getElementById("certificateScreen").style.display = "none";
-      document.getElementById("gameContainer").style.display = "block";
-      document.getElementById("levelTitle").innerText = levels[0].title;
-      document.getElementById("levelNum").innerText = 1;
-      resetLevel();
-      draw();
+    // تحميل الصور
+    function loadImages() {
+      neuronParts.forEach(part => {
+        const img = new Image();
+        img.src = `${part.name.replace(" ", "-")}.png`; // مثل: جسم-الخلية.png
+        img.onload = () => {
+          images[part.name] = img;
+          imagesLoaded++;
+          if (imagesLoaded === neuronParts.length) draw();
+        };
+      });
     }
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const level = levels[currentLevel - 1];
 
-      if (currentLevel === 1) {
-        level.parts.forEach(part => {
-          if (images[part.name]) {
-            ctx.drawImage(images[part.name], part.x, part.y, 40, 40);
-          }
-          ctx.setLineDash([5]);
-          ctx.strokeStyle = "#999";
-          ctx.strokeRect(part.correctX, part.correctY, 40, 40);
-          ctx.setLineDash([]);
-        });
+      // خطوط الإرشاد
+      ctx.setLineDash([5]);
+      ctx.strokeStyle = "#999";
+      ctx.strokeRect(380, 280, 40, 40); // جسم الخلية
+      ctx.strokeRect(480, 280, 40, 40); // Axon
+      ctx.strokeRect(280, 280, 40, 40); // Dendrites
+      ctx.setLineDash([]);
 
-        if (level.parts.every(p => p.placed)) {
-          document.getElementById("infoBox").innerHTML = `
-            📘 تم! يمكنك مشاهدة كيف تعمل الإشارة العصبية.<br>
-            <small>استمر في اللعب...</small>
-          `;
-          document.getElementById("nextLevelBtn").style.display = "block";
-          score += 10;
+      // رسم الأجزاء
+      neuronParts.forEach(part => {
+        if (images[part.name]) {
+          ctx.drawImage(images[part.name], part.x, part.y, 40, 40);
+        } else {
+          ctx.fillStyle = "#007acc";
+          ctx.fillRect(part.x, part.y, 40, 40);
+          ctx.fillStyle = "#fff";
+          ctx.font = "12px Arial";
+          ctx.fillText(part.name.charAt(0), part.x + 15, part.y + 25);
         }
-
-      } else if (currentLevel === 2) {
-        level.parts.forEach((part, i) => {
-          if (images[part.name]) {
-            ctx.drawImage(images[part.name], part.x, part.y, 40, 40);
-          }
-        });
-
-        if (isOrderedCorrectly()) {
-          document.getElementById("infoBox").innerHTML = `✅ رائع! لقد رتبت الخطوات بشكل صحيح.`;
-          document.getElementById("nextLevelBtn").style.display = "block";
-          score += 10;
-        }
-
-      } else if (currentLevel === 3) {
-        level.circles.forEach(circle => {
-          ctx.beginPath();
-          ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
-          ctx.fillStyle = circle.connected ? "#007acc" : "#ddd";
-          ctx.fill();
-          ctx.fillStyle = "#000";
-          ctx.textAlign = "center";
-          ctx.font = "14px Arial";
-          ctx.fillText(circle.label, circle.x, circle.y + 5);
-        });
-
-        level.lines?.forEach(line => {
-          ctx.beginPath();
-          ctx.moveTo(line.from.x, line.from.y);
-          ctx.lineTo(line.to.x, line.to.y);
-          ctx.strokeStyle = "#007acc";
-          ctx.stroke();
-        });
-
-        if (level.circles.every(c => c.connected)) {
-          document.getElementById("infoBox").innerHTML = `✅ تم! لقد بنيت شبكة عصبية كاملة`;
-          document.getElementById("nextLevelBtn").style.display = "block";
-          score += 10;
-        }
-
-      } else if (currentLevel === 4) {
-        level.parts.forEach(part => {
-          if (images[part.name]) {
-            ctx.drawImage(images[part.name], part.x, part.y, 40, 40);
-          }
-        });
-        document.getElementById("infoBox").innerText = "انقر على الجزء المعطوب";
-
-      } else if (currentLevel === 5) {
-        level.steps.forEach(step => {
-          if (images[step.name]) {
-            ctx.drawImage(images[step.name], step.x, step.y, 40, 40);
-          }
-        });
-
-        level.targets.forEach(target => {
-          ctx.strokeStyle = "#999";
-          ctx.strokeRect(target.x, target.y, 40, 40);
-        });
-
-        document.getElementById("infoBox").innerText = "اسحب الأجزاء وضعها في أماكنها";
-      }
-    }
-
-    function isOrderedCorrectly() {
-      return levels[1].parts.every((p, i) => p.order === i);
-    }
-
-    function resetLevel() {
-      const level = levels[currentLevel - 1];
-      if (level.parts) level.parts.forEach(p => p.placed = false);
-      if (level.circles) level.circles.forEach(c => c.connected = false);
-      document.getElementById("nextLevelBtn").style.display = "none";
-      document.getElementById("infoBox").innerText = "ابدأ المستوى!";
-      draw();
-    }
-
-    function loadImages() {
-      levels.forEach(level => {
-        level.parts?.forEach(part => {
-          const img = new Image();
-          img.src = `${part.name.replace(" ", "-")}.png`; // مثال: جسم-الخلية.png
-          img.onload = () => {
-            images[part.name] = img;
-            imagesLoaded++;
-            if (imagesLoaded === getTotalParts()) draw();
-          };
-        });
       });
-    }
-
-    function getTotalParts() {
-      let count = 0;
-      levels.forEach(level => {
-        if (level.parts) count += level.parts.length;
-      });
-      return count;
-    }
-
-    function connectCircles(clickedCircle) {
-      if (!clickedCircle.connected) {
-        clickedCircle.connected = true;
-        levels[2].lines.push({
-          from: { x: clickedCircle.x, y: clickedCircle.y },
-          to: { x: clickedCircle.x + 100, y: clickedCircle.y }
-        });
-        draw();
-      }
     }
 
     canvas.addEventListener("mousedown", e => {
@@ -362,163 +90,60 @@
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      const level = levels[currentLevel - 1];
-
-      if (currentLevel === 1) {
-        level.parts.forEach(part => {
-          if (!part.placed &&
-              mouseX > part.x && mouseX < part.x + 40 &&
-              mouseY > part.y && mouseY < part.y + 40) {
-            draggedItem = part;
-          }
-        });
-      } else if (currentLevel === 2) {
-        level.parts.forEach(part => {
-          if (!part.moved) {
-            if (mouseX > part.x && mouseX < part.x + 40 &&
-                mouseY > part.y && mouseY < part.y + 40) {
-              draggedItem = part;
-            }
-          }
-        });
-      } else if (currentLevel === 3) {
-        level.circles.forEach(circle => {
-          const dx = mouseX - circle.x;
-          const dy = mouseY - circle.y;
-          if (Math.sqrt(dx * dx + dy * dy) < circle.radius) {
-            connectCircles(circle);
-          }
-        });
-      } else if (currentLevel === 4) {
-        level.parts.forEach(part => {
-          if (mouseX > part.x && mouseX < part.x + 40 &&
-              mouseY > part.y && mouseY < part.y + 40) {
-            if (part.broken) {
-              score += 10;
-              alert("✅ هذا الجزء كان معطوباً! تهانينا!");
-              nextLevel();
-            } else {
-              alert("❌ هذا الجزء يعمل بشكل صحيح.");
-            }
-          }
-        });
-      } else if (currentLevel === 5) {
-        level.steps.forEach(step => {
-          if (mouseX > step.x && mouseX < step.x + 40 &&
-              mouseY > step.y && mouseY < step.y + 40) {
-            draggedItem = step;
-          }
-        });
-      }
-
-      draw();
+      neuronParts.forEach(part => {
+        if (!part.placed &&
+            mouseX > part.x && mouseX < part.x + 40 &&
+            mouseY > part.y && mouseY < part.y + 40) {
+          draggedPart = part;
+        }
+      });
     });
 
     canvas.addEventListener("mousemove", e => {
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-
-      if (draggedItem && currentLevel === 1) {
-        draggedItem.x = mouseX - 20;
-        draggedItem.y = mouseY - 20;
-        checkPlacement(draggedItem);
-      } else if (draggedItem && currentLevel === 2) {
-        draggedItem.x = mouseX - 20;
-        draggedItem.y = mouseY - 20;
-      } else if (draggedItem && currentLevel === 5) {
-        draggedItem.x = mouseX - 20;
-        draggedItem.y = mouseY - 20;
+      if (draggedPart) {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        draggedPart.x = mouseX - 20;
+        draggedPart.y = mouseY - 20;
+        draw();
       }
-
-      draw();
     });
 
     canvas.addEventListener("mouseup", () => {
-      const level = levels[currentLevel - 1];
+      if (draggedPart) {
+        // التحقق من مكان الجسم
+        if (draggedPart.name === "جسم الخلية" &&
+            draggedPart.x > 370 && draggedPart.x < 390) {
+          draggedPart.placed = true;
+        }
 
-      if (draggedItem && currentLevel === 1) {
-        const dx = Math.abs(draggedItem.x - draggedItem.correctX);
-        const dy = Math.abs(draggedItem.y - draggedItem.correctY);
-        if (dx < 20 && dy < 20) {
-          draggedItem.x = draggedItem.correctX;
-          draggedItem.y = draggedItem.correctY;
-          draggedItem.placed = true;
+        // التحقق من Axon
+        if (draggedPart.name === "Axon" &&
+            draggedPart.x > 470 && draggedPart.x < 490) {
+          draggedPart.placed = true;
         }
-      } else if (draggedItem && currentLevel === 2) {
-        draggedItem.moved = true;
-        for (let i = 0; i < level.parts.length; i++) {
-          if (draggedItem === level.parts[i]) {
-            draggedItem.order = i;
-            break;
-          }
+
+        // التحقق من Dendrites
+        if (draggedPart.name === "Dendrites" &&
+            draggedPart.x > 270 && draggedPart.x < 290) {
+          draggedPart.placed = true;
         }
-      } else if (draggedItem && currentLevel === 5) {
-        level.targets.forEach(target => {
-          const dx = draggedItem.x - target.x;
-          const dy = draggedItem.y - target.y;
-          if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
-            draggedItem.x = target.x;
-            draggedItem.y = target.y;
-            draggedItem.placed = true;
-          }
-        });
+
+        document.getElementById("infoBox").innerText =
+          draggedPart.placed ? `✅ ${draggedPart.name} تم وضعه بشكل صحيح.` : `❌ حاول مرة أخرى`;
+
+        draggedPart = null;
+        draw();
       }
-
-      draggedItem = null;
-      draw();
     });
 
-    function checkPlacement(part) {
-      const dx = Math.abs(part.x - part.correctX);
-      const dy = Math.abs(part.y - part.correctY);
-      if (dx < 20 && dy < 20) {
-        part.x = part.correctX;
-        part.y = part.correctY;
-        part.placed = true;
-        score += 10;
-      }
-    }
-
     // بدء اللعبة
-    let imagesLoaded = 0;
-
-    function loadImages() {
-      levels.forEach(level => {
-        level.parts?.forEach(part => {
-          const img = new Image();
-          img.src = `${part.name.replace(" ", "-")}.png`; // مثل: الجسم-العصبي.png
-          img.onload = () => {
-            images[part.name] = img;
-            imagesLoaded++;
-            if (imagesLoaded === getTotalParts()) draw();
-          };
-        });
-      });
-    }
-
-    // دالة البدء
-    function startGame() {
-      document.getElementById("startScreen").style.display = "none";
-      document.getElementById("gameContainer").style.display = "block";
-      document.getElementById("levelTitle").innerText = levels[0].title;
+    window.onload = () => {
       loadImages();
-    }
+    };
 
-    // دالة إعادة التشغيل
-    function restartGame() {
-      currentLevel = 1;
-      score = 0;
-      document.getElementById("certificateScreen").style.display = "none";
-      document.getElementById("gameContainer").style.display = "block";
-      document.getElementById("levelTitle").innerText = levels[0].title;
-      document.getElementById("levelNum").innerText = 1;
-      resetLevel();
-      draw();
-    }
-
-    // تفعيل السحب والإفلات
-    loadImages(); // تحميل الصور
+    draw();
   </script>
 </body>
 </html>
