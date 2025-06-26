@@ -118,15 +118,6 @@
     let currentLevel = 1;
     let score = 0;
 
-    // الصور المدمجة بصيغة Base64
-    const neuronImages = {
-      "جسم الخلية": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAyCAIAAAA...",
-      "المحور (Axon)": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAyCAIAAAA...",
-      "الشجرة العصبية": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAyCAIAAAA...",
-      "الغشاء المايليني": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAyCAIAAAA...",
-      "التشابك العصبي": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAyCAIAAAA..."
-    };
-
     // بيانات المستويات
     const levels = [
       {
@@ -155,6 +146,7 @@
       },
       {
         title: "مستوى 3: توصيل الخلايا",
+        lines: [],
         circles: [
           { x: 100, y: 100, radius: 30, label: "خلية 1", connected: false },
           { x: 300, y: 100, radius: 30, label: "خلية 2", connected: false },
@@ -253,6 +245,7 @@
             <small>استمر في اللعب...</small>
           `;
           document.getElementById("nextLevelBtn").style.display = "block";
+          score += 10;
         }
 
       } else if (currentLevel === 2) {
@@ -291,6 +284,7 @@
         if (level.circles.every(c => c.connected)) {
           document.getElementById("infoBox").innerHTML = `✅ تم! لقد بنيت شبكة عصبية كاملة`;
           document.getElementById("nextLevelBtn").style.display = "block";
+          score += 10;
         }
 
       } else if (currentLevel === 4) {
@@ -334,7 +328,7 @@
       levels.forEach(level => {
         level.parts?.forEach(part => {
           const img = new Image();
-          img.src = neuronImages[part.name] || "";
+          img.src = `${part.name.replace(" ", "-")}.png`; // مثال: جسم-الخلية.png
           img.onload = () => {
             images[part.name] = img;
             imagesLoaded++;
@@ -355,7 +349,6 @@
     function connectCircles(clickedCircle) {
       if (!clickedCircle.connected) {
         clickedCircle.connected = true;
-        levels[2].lines = levels[2].lines || [];
         levels[2].lines.push({
           from: { x: clickedCircle.x, y: clickedCircle.y },
           to: { x: clickedCircle.x + 100, y: clickedCircle.y }
@@ -487,6 +480,24 @@
       }
     }
 
+    // بدء اللعبة
+    let imagesLoaded = 0;
+
+    function loadImages() {
+      levels.forEach(level => {
+        level.parts?.forEach(part => {
+          const img = new Image();
+          img.src = `${part.name.replace(" ", "-")}.png`; // مثل: الجسم-العصبي.png
+          img.onload = () => {
+            images[part.name] = img;
+            imagesLoaded++;
+            if (imagesLoaded === getTotalParts()) draw();
+          };
+        });
+      });
+    }
+
+    // دالة البدء
     function startGame() {
       document.getElementById("startScreen").style.display = "none";
       document.getElementById("gameContainer").style.display = "block";
@@ -494,24 +505,7 @@
       loadImages();
     }
 
-    function nextLevel() {
-      if (currentLevel < levels.length) {
-        currentLevel++;
-        document.getElementById("levelTitle").innerText = levels[currentLevel - 1].title;
-        document.getElementById("levelNum").innerText = currentLevel;
-        resetLevel();
-        draw();
-      } else {
-        showCertificate();
-      }
-    }
-
-    function showCertificate() {
-      document.getElementById("gameContainer").style.display = "none";
-      document.getElementById("certificateScreen").style.display = "block";
-      document.getElementById("totalScore").innerText = score;
-    }
-
+    // دالة إعادة التشغيل
     function restartGame() {
       currentLevel = 1;
       score = 0;
@@ -523,142 +517,8 @@
       draw();
     }
 
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      const level = levels[currentLevel - 1];
-
-      if (currentLevel === 1) {
-        level.parts.forEach(part => {
-          if (images[part.name]) {
-            ctx.drawImage(images[part.name], part.x, part.y, 40, 40);
-          }
-          ctx.setLineDash([5]);
-          ctx.strokeStyle = "#999";
-          ctx.strokeRect(part.correctX, part.correctY, 40, 40);
-          ctx.setLineDash([]);
-        });
-
-        if (level.parts.every(p => p.placed)) {
-          document.getElementById("infoBox").innerHTML = `
-            📘 تم! يمكنك مشاهدة كيف تعمل الإشارة العصبية.<br>
-            <small>استمر في اللعب...</small>
-          `;
-          document.getElementById("nextLevelBtn").style.display = "block";
-        }
-
-      } else if (currentLevel === 2) {
-        level.parts.forEach((part, i) => {
-          if (images[part.name]) {
-            ctx.drawImage(images[part.name], part.x, part.y, 40, 40);
-          }
-        });
-
-        if (isOrderedCorrectly()) {
-          document.getElementById("infoBox").innerHTML = `✅ رائع! لقد رتبت الخطوات بشكل صحيح.`;
-          document.getElementById("nextLevelBtn").style.display = "block";
-          score += 10;
-        }
-
-      } else if (currentLevel === 3) {
-        level.circles.forEach(circle => {
-          ctx.beginPath();
-          ctx.arc(circle.x, circle.y, circle.radius, 0, Math.PI * 2);
-          ctx.fillStyle = circle.connected ? "#007acc" : "#ddd";
-          ctx.fill();
-          ctx.fillStyle = "#000";
-          ctx.textAlign = "center";
-          ctx.font = "14px Arial";
-          ctx.fillText(circle.label, circle.x, circle.y + 5);
-        });
-
-        level.lines?.forEach(line => {
-          ctx.beginPath();
-          ctx.moveTo(line.from.x, line.from.y);
-          ctx.lineTo(line.to.x, line.to.y);
-          ctx.strokeStyle = "#007acc";
-          ctx.stroke();
-        });
-
-        if (level.circles.every(c => c.connected)) {
-          document.getElementById("infoBox").innerHTML = `✅ تم! لقد بنيت شبكة عصبية كاملة`;
-          document.getElementById("nextLevelBtn").style.display = "block";
-          score += 10;
-        }
-
-      } else if (currentLevel === 4) {
-        level.parts.forEach(part => {
-          if (images[part.name]) {
-            ctx.drawImage(images[part.name], part.x, part.y, 40, 40);
-          }
-        });
-        document.getElementById("infoBox").innerText = "انقر على الجزء المعطوب";
-
-      } else if (currentLevel === 5) {
-        level.steps.forEach(step => {
-          if (images[step.name]) {
-            ctx.drawImage(images[step.name], step.x, step.y, 40, 40);
-          }
-        });
-
-        level.targets.forEach(target => {
-          ctx.strokeStyle = "#999";
-          ctx.strokeRect(target.x, target.y, 40, 40);
-        });
-
-        document.getElementById("infoBox").innerText = "اسحب الأجزاء وضعها في أماكنها";
-      }
-    }
-
-    function isOrderedCorrectly() {
-      return levels[1].parts.every((p, i) => p.order === i);
-    }
-
-    function resetLevel() {
-      const level = levels[currentLevel - 1];
-      if (level.parts) level.parts.forEach(p => p.placed = false);
-      if (level.circles) level.circles.forEach(c => c.connected = false);
-      document.getElementById("nextLevelBtn").style.display = "none";
-      document.getElementById("infoBox").innerText = "ابدأ المستوى!";
-      draw();
-    }
-
-    function loadImages() {
-      levels.forEach(level => {
-        level.parts?.forEach(part => {
-          const img = new Image();
-          img.src = neuronImages[part.name] || "";
-          img.onload = () => {
-            images[part.name] = img;
-            imagesLoaded++;
-            if (imagesLoaded === getTotalParts()) draw();
-          };
-        });
-      });
-    }
-
-    function getTotalParts() {
-      let count = 0;
-      levels.forEach(level => {
-        if (level.parts) count += level.parts.length;
-      });
-      return count;
-    }
-
-    // بدء تحميل الصور
-    let imagesLoaded = 0;
-    const images = {};
-    levels.forEach(level => {
-      level.parts?.forEach(part => {
-        const img = new Image();
-        img.src = neuronImages[part.name] || "";
-        img.onload = () => {
-          images[part.name] = img;
-          imagesLoaded++;
-          if (imagesLoaded === getTotalParts()) draw();
-        };
-      });
-    });
+    // تفعيل السحب والإفلات
+    loadImages(); // تحميل الصور
   </script>
 </body>
 </html>
